@@ -29,4 +29,116 @@
 生成方法：学习P（X,Y），求出P（Y|X）
 判别方法：直接学习f（X）或P（Y|X）
 
+使用最小二乘法拟和曲线
+
+import numpy as np
+import scipy as sp
+from scipy.optimize import leastsq
+import matplotlib.pyplot as plt
+%matplotlib inline
+ps: numpy.poly1d([1,2,3]) 生成 $1x^2+2x^1+3x^0$*
+In [2]:
+# 目标函数
+def real_func(x):
+    return np.sin(2*np.pi*x)
+
+# 多项式
+def fit_func(p, x):
+    f = np.poly1d(p)
+    return f(x)
+
+# 残差
+def residuals_func(p, x, y):
+    ret = fit_func(p, x) - y
+    return ret
+In [4]:
+# 十个点
+x = np.linspace(0, 1, 10)
+x_points = np.linspace(0, 1, 1000)
+# 加上正态分布噪音的目标函数的值
+y_ = real_func(x)
+y = [np.random.normal(0, 0.1) + y1 for y1 in y_]
+
+
+def fitting(M=0):
+    """
+    M    为 多项式的次数
+    """
+    # 随机初始化多项式参数
+    p_init = np.random.rand(M + 1)
+    # 最小二乘法
+    p_lsq = leastsq(residuals_func, p_init, args=(x, y))
+    print('Fitting Parameters:', p_lsq[0])
+
+    # 可视化
+    plt.plot(x_points, real_func(x_points), label='real')
+    plt.plot(x_points, fit_func(p_lsq[0], x_points), label='fitted curve')
+    plt.plot(x, y, 'bo', label='noise')
+    plt.legend()
+    return p_lsq
+M=0
+In [5]:
+# M=0
+p_lsq_0 = fitting(M=0)
+Fitting Parameters: [0.02515259]
+
+M=1
+In [6]:
+# M=1
+p_lsq_1 = fitting(M=1)
+Fitting Parameters: [-1.50626624  0.77828571]
+
+M=3
+In [7]:
+# M=3
+p_lsq_3 = fitting(M=3)
+Fitting Parameters: [ 2.21147559e+01 -3.34560175e+01  1.13639167e+01 -2.82318048e-02]
+
+M=9
+In [12]:
+# M=9
+p_lsq_9 = fitting(M=9)
+Fitting Parameters: [-1.70872086e+04  7.01364939e+04 -1.18382087e+05  1.06032494e+05
+ -5.43222991e+04  1.60701108e+04 -2.65984526e+03  2.12318870e+02
+ -7.15931412e-02  3.53804263e-02]
+
+当M=9时，多项式曲线通过了每个数据点，但是造成了过拟合
+
+正则化
+结果显示过拟合， 引入正则化项(regularizer)，降低过拟合
+
+$Q(x)=\sum_{i=1}^n(h(x_i)-y_i)^2+\lambda||w||^2$。
+
+回归问题中，损失函数是平方损失，正则化可以是参数向量的L2范数,也可以是L1范数。
+
+L1: regularization*abs(p)
+
+L2: 0.5 * regularization * np.square(p)
+
+In [9]:
+regularization = 0.0001
+
+
+def residuals_func_regularization(p, x, y):
+    ret = fit_func(p, x) - y
+    ret = np.append(ret,
+                    np.sqrt(0.5 * regularization * np.square(p)))  # L2范数作为正则化项
+    return ret
+In [10]:
+# 最小二乘法,加正则化项
+p_init = np.random.rand(9 + 1)
+p_lsq_regularization = leastsq(
+    residuals_func_regularization, p_init, args=(x, y))
+In [11]:
+plt.plot(x_points, real_func(x_points), label='real')
+plt.plot(x_points, fit_func(p_lsq_9[0], x_points), label='fitted curve')
+plt.plot(
+    x_points,
+    fit_func(p_lsq_regularization[0], x_points),
+    label='regularization')
+plt.plot(x, y, 'bo', label='noise')
+plt.legend()
+Out[11]:
+<matplotlib.legend.Legend at 0x295a5c757b8>
+
 
