@@ -1,5 +1,5 @@
 # creator:yiming liu
-# time: 2020/10/28 20:56
+# time: 2020/10/20 20:00
 import numpy as np
 import scipy as sp
 from scipy.optimize import leastsq
